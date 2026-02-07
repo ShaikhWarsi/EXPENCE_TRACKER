@@ -2,25 +2,27 @@ import pytest
 import sqlite3
 import os
 import uuid
-import app as flask_app
+from app import app as flask_app, init_db
+import app as app_module
 
 @pytest.fixture
 def app():
     # Configure app for testing
-    flask_app.app.config.update({
+    flask_app.config.update({
         "TESTING": True,
         "JWT_SECRET": "test-secret",
     })
     
     # Use a unique shared in-memory database for this test
     db_name = f"test_{uuid.uuid4().hex}"
-    flask_app.DB_PATH = f"file:{db_name}?mode=memory&cache=shared"
+    # Force the module-level DB_PATH to use the in-memory URI
+    app_module.DB_PATH = f"file:{db_name}?mode=memory&cache=shared"
     
     # Initialize the database schema
-    with flask_app.app.app_context():
-        flask_app.init_db()
+    with flask_app.app_context():
+        init_db()
         
-    yield flask_app.app
+    yield flask_app
     
     # No explicit cleanup needed for in-memory DB as it's destroyed when last connection closes
     # But we should ensure all connections are closed if any were leaked.
